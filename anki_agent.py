@@ -5,9 +5,11 @@ import json
 from openai import OpenAI
 import fitz  # PyMuPDF
 from pptx import Presentation
+from dotenv import load_dotenv
 
 
 # ======== CONFIG ========
+load_dotenv()
 ANKI_CONNECT_URL = "http://localhost:8765"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -65,14 +67,21 @@ def extract_lecture_text(file_path):
 # ======== FLASHCARD GENERATION ========
 
 def generate_flashcards_from_lecture(lecture_text, model="gpt-4o"):
-    """Use OpenAI API to turn lecture text into structured flashcards"""
+    """Use OpenAI API to turn lecture text into structured flashcards that scale with topic complexity."""
     prompt = f"""
-    You are a study assistant. Create detailed Anki flashcards from this lecture content.
+    You are a study assistant that creates detailed, high-quality Anki flashcards from the given lecture.
 
-    Requirements:
-    - Cover all key ideas, formulas, definitions, and reasoning.
-    - Vary question style (conceptual, factual, applied).
-    - Output ONLY valid JSON in this format:
+    Goals:
+    - Adapt the number of flashcards to the **complexity and density** of the material.
+      - For short or simple lectures: fewer, more general flashcards(minimum of 30).
+      - For long or complex lectures: more detailed and comprehensive flashcards. (40 flashcards or above )
+    - Include **definitions, concepts, reasoning steps, examples, and formulas** where relevant.
+    - Use a mix of question styles: conceptual, factual, applied, and reasoning-based.
+    - Ensure complete topic coverage without redundancy.
+
+    Output:
+    - ONLY valid JSON (no text outside JSON)
+    - Format:
       [
         {{"q": "Question 1?", "a": "Answer 1"}},
         {{"q": "Question 2?", "a": "Answer 2"}}
@@ -85,7 +94,7 @@ def generate_flashcards_from_lecture(lecture_text, model="gpt-4o"):
     response = client.responses.create(
         model=model,
         input=prompt,
-        temperature=0.6,
+        temperature=0.7,
     )
 
     text = response.output_text.strip()
